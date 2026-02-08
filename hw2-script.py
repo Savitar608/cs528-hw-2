@@ -4,7 +4,7 @@ from google.cloud import storage
 # Create a client to interact with Google Cloud Storage
 client = storage.Client()
 
-testing_enabled = True
+testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
 def analyze_bucket(bucket_name):
     # Get the bucket object
