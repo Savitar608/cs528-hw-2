@@ -1,0 +1,12 @@
+// generating 20000 files with max references of 375
+./generate-content.py -n 20000 -m 375
+
+// authenticating the default credentials for application usage (from python)
+gcloud auth application-default login
+
+// Creating the bucket
+gcloud storage buckets create gs://cs528-adithyav-hw2 --location=us-central1
+
+// To give public read access
+gcloud storage buckets add-iam-policy-binding gs://cs528-adithyav-hw2 --member=allUsers --role=roles/storage.objectViewer
+
