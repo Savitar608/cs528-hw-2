@@ -10,3 +10,12 @@ gcloud storage buckets create gs://cs528-adithyav-hw2 --location=us-central1
 // To give public read access
 gcloud storage buckets add-iam-policy-binding gs://cs528-adithyav-hw2 --member=allUsers --role=roles/storage.objectViewer
 
+// Copy the 20k files to the storage bucket using gcloud (parallelism is already done by this tool)
+gcloud storage cp *.html gs://cs528-adithyav-hw2/
+
+// Set up a virtual env in python
+python3 -m venv ./venv
+
+// Activate the venv and install the pre-requisites
+source ./venv/bin/activate
+pip install -r requirements.txt
