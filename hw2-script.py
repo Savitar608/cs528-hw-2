@@ -11,7 +11,9 @@ testing_enabled = True  # Set to True to analyze a smaller bucket for testing pu
 
 
 
-
+# Formular from assignment: PR(A) = 0.15/n + 0.85 (PR(T1)/C(T1) + … +PR(Tn)/C(Tn))
+# where PR(X) is the pagerank of a page X, T1..Tn are all the pages pointing to page X, and C(X) is the number of outgoing links that page X has.
+# From this, d is 0.85, and (1-d)/n is 0.15/n
 def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
     '''
     Calcuated using the iterative formula: PR(X) = (1-d)/n + d * (PR(T1)/C(T1) + ... + PR(Tn)/C(Tn))
@@ -28,7 +30,7 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
     n = len(nodes)
     
     # Initialize PageRank values
-    page_rank = { node: 1.0/n for node in nodes }
+    page_ranks = { node: 1.0/n for node in nodes }
     
     converged = False
     iteration = 0
@@ -41,8 +43,41 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
     for node in nodes:
         for outlink in edges[node]:
             incoming_links[outlink].append(node)
+
+    # Iterate until convergence
+    while not converged:
+        # Initialize new PageRank values
+        new_page_ranks = {}
+        
+        for node in nodes:
+            # Calculate the sum of PageRank contributions from incoming links
+            incoming_sum = 0
+            for incoming_node in incoming_links[node]:
+                if outbound_counts[incoming_node] > 0:
+                    incoming_sum += page_ranks[incoming_node] / outbound_counts[incoming_node]
             
-    return page_rank  # Placeholder return
+            # Update PageRank value using the formula
+            new_rank = (1 - d) / n + d * incoming_sum
+            new_page_ranks[node] = new_rank
+            
+        # Increment iteration count
+        iteration += 1
+
+        # Calculate the sum of all page ranks
+        total_rank = sum(new_page_ranks.values())
+        
+        # Calculate the previous total rank for normalization
+        previous_total_rank = sum(page_ranks.values())
+        
+        
+        # If the change in total rank is more than 0.5%, we stop iterating
+        if abs(total_rank - previous_total_rank) / previous_total_rank > tol:
+            print(f"Iteration {iteration}: Total PageRank sum changed from {previous_total_rank} to {total_rank}")
+            converged = True
+        
+        page_ranks = new_page_ranks
+            
+    return page_ranks
         
 
 
