@@ -1,13 +1,34 @@
 #!./venv/bin/python3
+from collections import defaultdict
 from google.cloud import storage
 from bs4 import BeautifulSoup
+import numpy as np
 
 # Create a client to interact with Google Cloud Storage
 client = storage.Client()
 
 testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
+
+def get_stats(data):
+        return {
+            "Avg": np.mean(data),
+            "Median": np.median(data),
+            "Max": np.max(data),
+            "Min": np.min(data),
+            "Quintiles": np.percentile(data, [25, 50, 75, 90, 95, 99])
+        }
+
 def analyze_bucket(bucket_name):
+    # Dictionary to store the in-count of each target URL
+    in_count = defaultdict(int)
+    
+    # Dictionary to store the edges (outlinks) for each blob
+    edges = defaultdict(list)
+    
+    # List of nodes (blobs) in the bucket
+    nodes = []
+    
     # Get the bucket object
     bucket = client.get_bucket(bucket_name)
     
@@ -36,9 +57,30 @@ def analyze_bucket(bucket_name):
         references = soup.find_all('a', href=True)
         outlinks = [a['href'] for a in references]
         
-        print(f"Outlinks in {blob.name}:")
+        links = []
+        # Add the outlinks to the links list
         for outlink in outlinks:
-            print(f"  {outlink}")
+            links.append(outlink)
+            in_count[outlink] +=1
+            
+        edges[blob.name] = links
+        nodes.append(blob.name)
+    
+    # Create lists of out-degrees and in-degrees for each node
+    # To be processed for statistics
+    out_degrees = [len(edges[node]) for node in nodes]
+    in_degrees = [in_count[node] for node in nodes]
+    
+    # Print the statistics for out-degrees and in-degrees
+    print("\nOut-Degree Statistics:")
+    out_stats = get_stats(out_degrees)
+    for stat, value in out_stats.items():
+        print(f"{stat}: {value}")
+        
+    print("\nIn-Degree Statistics:")
+    in_stats = get_stats(in_degrees)
+    for stat, value in in_stats.items():
+        print(f"{stat}: {value}")
 
 if __name__ == "__main__":
     analyze_bucket('cs528-adithyav-hw2')
