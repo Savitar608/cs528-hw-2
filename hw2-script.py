@@ -57,13 +57,18 @@ def analyze_bucket(bucket_name):
         references = soup.find_all('a', href=True)
         outlinks = [a['href'] for a in references]
         
-        links = []
         # Add the outlinks to the links list
+        links = []
         for outlink in outlinks:
             links.append(outlink)
-            in_count[outlink] +=1
             
+            # Increment the in-count for the target URL
+            in_count[outlink] +=1
+        
+        # Store the edges (outlinks) for the current blob
         edges[blob.name] = links
+        
+        # Add the blob name to the list of nodes
         nodes.append(blob.name)
     
     # Create lists of out-degrees and in-degrees for each node
