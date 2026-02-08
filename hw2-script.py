@@ -16,7 +16,7 @@ def get_stats(data):
             "Median": np.median(data),
             "Max": np.max(data),
             "Min": np.min(data),
-            "Quintiles": np.percentile(data, [25, 50, 75, 90, 95, 99])
+            "Quintiles": np.percentile(data, [20, 40, 60, 80])
         }
 
 def analyze_bucket(bucket_name):
@@ -42,7 +42,7 @@ def analyze_bucket(bucket_name):
 
     # Analyze the blobs and print their names and sizes
     for blob in blobs:
-        print(f"Blob Name: {blob.name}, Size: {blob.size} bytes")
+        # print(f"Blob Name: {blob.name}, Size: {blob.size} bytes")
         
         # Only analyze HTML files
         if not blob.name.endswith('.html'):
