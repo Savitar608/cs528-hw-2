@@ -25,6 +25,8 @@ def get_stats(data):
             "Quintiles": np.percentile(data, [20, 40, 60, 80])
         }
 
+
+
 def analyze_bucket(bucket_name):
     '''Analyze the specified bucket and compute the statistics for in-degrees and out-degrees.
     Args:
