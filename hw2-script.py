@@ -11,7 +11,13 @@ testing_enabled = True  # Set to True to analyze a smaller bucket for testing pu
 
 
 def get_stats(data):
-        return {
+    '''Calculate and return statistics for a given list of data.
+    Args:
+        data (list): A list of numerical values for which statistics are to be calculated.
+    Returns:
+        dict: A dictionary containing the average, median, maximum, minimum, and quintiles of the input data.
+    '''
+    return {
             "Avg": np.mean(data),
             "Median": np.median(data),
             "Max": np.max(data),
@@ -20,6 +26,11 @@ def get_stats(data):
         }
 
 def analyze_bucket(bucket_name):
+    '''Analyze the specified bucket and compute the statistics for in-degrees and out-degrees.
+    Args:
+        bucket_name (str): The name of the bucket to be analyzed.
+    This function retrieves the blobs (objects) from the specified bucket, extracts the outlinks from HTML files, and computes the in-degrees and out-degrees for each blob. It then calculates and prints the statistics for both in-degrees and out-degrees.
+    '''
     # Dictionary to store the in-count of each target URL
     in_count = defaultdict(int)
     
