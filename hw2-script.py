@@ -10,6 +10,42 @@ client = storage.Client()
 testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
 
+
+
+def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
+    '''
+    Calcuated using the iterative formula: PR(X) = (1-d)/n + d * (PR(T1)/C(T1) + ... + PR(Tn)/C(Tn))
+    where T1...Tn are the pages linking to page X,
+    C(Ti) is the number of outbound links on page Ti
+    Args:
+        nodes (list): A list of node identifiers (e.g., blob names).
+        edges (dict): A dictionary where keys are node identifiers and values are lists of outbound links from the corresponding node.
+        d (float): Damping factor (set to 0.85 by default).
+        tol (float): Tolerance level for convergence (set to 0.005 by default).
+    Returns:
+        dict: A dictionary mapping each node to its computed PageRank value.
+    '''
+    n = len(nodes)
+    
+    # Initialize PageRank values
+    page_rank = { node: 1.0/n for node in nodes }
+    
+    converged = False
+    iteration = 0
+    
+    # Precompute outbound link counts
+    outbound_counts = { node: len(edges[node]) for node in nodes }
+    
+    # Build incoming links mapping
+    incoming_links = defaultdict(list)
+    for node in nodes:
+        for outlink in edges[node]:
+            incoming_links[outlink].append(node)
+            
+    return page_rank  # Placeholder return
+        
+
+
 def get_stats(data):
     '''Calculate and return statistics for a given list of data.
     Args:
