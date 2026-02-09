@@ -19,3 +19,124 @@ python3 -m venv ./venv
 // Activate the venv and install the pre-requisites
 source ./venv/bin/activate
 pip install -r requirements.txt
+
+
+Error in cloud shell:
+Cloud Shell Execution Note: During the execution on Google Cloud Shell, I encountered persistent urllib3.exceptions.ReadTimeoutError limits when attempting to fetch 20,000 files via the Python client library. This is a known limitation of the Cloud Shell's shared VM network environment.
+(venv) adithyav@cloudshell:~/cs528-hw-2 (main-tokenizer-486322-e1)$ python3 hw2-script.py 
+
+--- Running Independent Correctness Test ---
+Iteration 1: Average PageRank error = 0.000000
+Iteration 1: Convergence achieved with average error 0.000000
+Total PageRank sum: 1.000000 (should be close to 1.0)
+✅ Test Passed: Logic is correct on control graph.
+
+Connecting to GCS Bucket: cs528-adithyav-hw2
+Downloading 20000 files (Threaded)...
+Traceback (most recent call last):
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 903, in _error_catcher
+    yield
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 1028, in _raw_read
+    data = self._fp_read(amt, read1=read1) if not fp_closed else b""
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 1011, in _fp_read
+    return self._fp.read(amt) if amt is not None else self._fp.read()
+           ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 479, in read
+    s = self.fp.read(amt)
+        ^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socket.py", line 707, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1252, in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ssl.py", line 1104, in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/requests/models.py", line 820, in generate
+    yield from self.raw.stream(chunk_size, decode_content=True)
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 1257, in stream
+    data = self.read(amt=amt, decode_content=decode_content)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 1112, in read
+    data = self._raw_read(amt)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 1027, in _raw_read
+    with self._error_catcher():
+  File "/usr/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/urllib3/response.py", line 908, in _error_catcher
+    raise ReadTimeoutError(self._pool, None, "Read timed out.") from e  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='storage.googleapis.com', port=443): Read timed out.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
+    result = target()
+             ^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/_media/requests/download.py", line 276, in retriable_request
+    self._write_to_stream(result)
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/_media/requests/download.py", line 149, in _write_to_stream
+    for chunk in body_iter:
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/requests/models.py", line 826, in generate
+    raise ConnectionError(e)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='storage.googleapis.com', port=443): Read timed out.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/adithyav/cs528-hw-2/hw2-script.py", line 249, in <module>
+    analyze_bucket(args.source, is_local=args.local)
+  File "/home/adithyav/cs528-hw-2/hw2-script.py", line 169, in analyze_bucket
+    results = list(downloader.map(download_helper, all_blobs))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/hw2-script.py", line 136, in download_helper
+    return (blob.name, blob.download_as_text())
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/blob.py", line 1765, in download_as_text
+    data = self.download_as_bytes(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/blob.py", line 1530, in download_as_bytes
+    self._prep_and_do_download(
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/blob.py", line 4659, in _prep_and_do_download
+    self._do_download(
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/blob.py", line 1094, in _do_download
+    response = download.consume(transport, timeout=timeout)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/_media/requests/download.py", line 280, in consume
+    return _request_helpers.wait_and_retry(retriable_request, self._retry_strategy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/cloud/storage/_media/requests/_request_helpers.py", line 107, in wait_and_retry
+    return func()
+           ^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+           ^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/home/adithyav/cs528-hw-2/venv/lib/python3.12/site-packages/google/api_core/retry/retry_base.py", line 229, in _retry_error_helper
+    raise final_exc from source_exc
+google.api_core.exceptions.RetryError: Timeout of 120.0s exceeded, last exception: HTTPSConnectionPool(host='storage.googleapis.com', port=443): Read timed out.
