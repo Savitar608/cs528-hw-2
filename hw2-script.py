@@ -88,13 +88,18 @@ def get_stats(data):
     Returns:
         dict: A dictionary containing the average, median, maximum, minimum, and quintiles of the input data.
     '''
-    return {
-            "Avg": np.mean(data),
-            "Median": np.median(data),
-            "Max": np.max(data),
-            "Min": np.min(data),
-            "Quintiles": np.percentile(data, [20, 40, 60, 80])
-        }
+    labels = ["20th", "40th", "60th", "80th"]
+    quintiles = np.percentile(data, [20, 40, 60, 80]).astype(int).tolist()
+    
+    statistics = {
+        "Avg": np.mean(data),
+        "Median": np.median(data),
+        "Max": np.max(data),
+        "Min": np.min(data),
+        "Quintiles": dict(zip(labels, quintiles))
+    }
+    
+    return statistics
 
 
 
@@ -170,6 +175,16 @@ def analyze_bucket(bucket_name):
     in_stats = get_stats(in_degrees)
     for stat, value in in_stats.items():
         print(f"{stat}: {value}")
+        
+    # Compute PageRank values
+    page_ranks = compute_page_rank(nodes, edges)
+    
+    # Calculate the top 5 PageRank values
+    top_5_pageranks = sorted(page_ranks.items(), key=lambda x: x[1], reverse=True)[:5]
+    
+    print("--- Top 5 Pages by PageRank ---")
+    for page, score in top_5_pageranks:
+        print(f"{page}: {score:.6f}")
 
 if __name__ == "__main__":
     analyze_bucket('cs528-adithyav-hw2')
