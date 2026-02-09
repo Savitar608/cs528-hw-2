@@ -75,8 +75,8 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
         # Increment iteration count
         iteration += 1
 
-        # Calculate the average error across all nodes for convergence detection
-        average_error = sum(abs(new_page_ranks[node] - page_ranks[node]) for node in nodes) / n
+        # Calculate the average error percentage across all nodes to check for convergence
+        average_error = np.mean([abs(new_page_ranks[node] - page_ranks[node])/page_ranks[node] for node in nodes])
         print(f"Iteration {iteration}: Average PageRank error = {average_error:.6f}")
         
         # If the average error is below the tolerance level, we consider it converged
