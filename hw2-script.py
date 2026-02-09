@@ -85,6 +85,12 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
             converged = True
         
         page_ranks = new_page_ranks
+        
+    # Test if the sum of PageRank values is approximately 1.0 (as expected in a closed system)
+    total_rank = sum(page_ranks.values())
+    print(f"Total PageRank sum: {total_rank:.6f} (should be close to 1.0)")
+    if abs(total_rank - 1.0) > 0.01:
+        print("Warning: Total PageRank sum is not close to 1.0, which may indicate an issue with the graph structure or convergence.")
             
     return page_ranks
         
