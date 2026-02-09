@@ -17,10 +17,7 @@ BUCKET_NAME = 'cs528-adithyav-hw2'
 class LocalBlob:
     def __init__(self, full_path, base_folder):
         self.path = full_path
-        parent_dir = os.path.dirname(os.path.abspath(base_folder))
-        rel_path = os.path.relpath(full_path, parent_dir)
-        self.name = rel_path.replace(os.sep, '/')
-
+        self.name = os.path.relpath(full_path, base_folder).replace(os.sep, '/')
     def download_as_text(self):
         with open(self.path, 'r', encoding='utf-8') as f:
             return f.read()
