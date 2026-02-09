@@ -1,6 +1,6 @@
 #!./venv/bin/python3
 from collections import defaultdict
-from time import time
+import time
 from google.cloud import storage
 from bs4 import BeautifulSoup
 import numpy as np
