@@ -71,20 +71,17 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
             # Update PageRank value using the formula
             new_rank = (1 - d) / n + d * incoming_sum
             new_page_ranks[node] = new_rank
-            
+                        
         # Increment iteration count
         iteration += 1
 
-        # Calculate the sum of all page ranks
-        total_rank = sum(new_page_ranks.values())
+        # Calculate the average error across all nodes for convergence detection
+        average_error = sum(abs(new_page_ranks[node] - page_ranks[node]) for node in nodes) / n
+        print(f"Iteration {iteration}: Average PageRank error = {average_error:.6f}")
         
-        # Calculate the previous total rank for normalization
-        previous_total_rank = sum(page_ranks.values())
-        
-        
-        # If the change in total rank is less than 0.5%, we stop iterating
-        if abs(total_rank - previous_total_rank) / previous_total_rank < tol:
-            print(f"Iteration {iteration}: Total PageRank sum changed from {previous_total_rank} to {total_rank}")
+        # If the average error is below the tolerance level, we consider it converged
+        if average_error < tol:
+            print(f"Iteration {iteration}: Convergence achieved with average error {average_error:.6f}")
             converged = True
         
         page_ranks = new_page_ranks
