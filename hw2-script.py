@@ -190,8 +190,16 @@ def analyze_bucket(source, is_local=False):
     in_degrees = [in_counts[n] for n in nodes]
 
     print("\n--- Statistics ---")
-    print("Outgoing Links:", get_stats(out_degrees))
-    print("Incoming Links:", get_stats(in_degrees))
+    outgoing_links_stats = get_stats(out_degrees)
+    incoming_links_stats = get_stats(in_degrees)
+    
+    for stat_name, stats in [("Outgoing Links", outgoing_links_stats), ("Incoming Links", incoming_links_stats)]:
+        print(f"\n{stat_name}:")
+        for k, v in stats.items():
+            if k == "Quintiles":
+                print(f"  {k}: {', '.join(v)}")
+            else:
+                print(f"  {k}: {v:.2f}" if isinstance(v, float) else f"  {k}: {v}")
         
     # 5. Compute PageRank values
     page_ranks = compute_page_rank(nodes, edges)
