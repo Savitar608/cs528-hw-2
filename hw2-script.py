@@ -1,26 +1,37 @@
 #!./venv/bin/python3
 from collections import defaultdict
+from time import time
 from google.cloud import storage
 from bs4 import BeautifulSoup
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
+import argparse
+import os
 
-# Create a client to interact with Google Cloud Storage
-client = storage.Client()
-
-testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
+testing_enabled = False  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
 
 # Specify the bucket name
 BUCKET_NAME = 'cs528-adithyav-hw2'
 
+class LocalBlob:
+    def __init__(self, full_path, base_folder):
+        self.path = full_path
+        parent_dir = os.path.dirname(os.path.abspath(base_folder))
+        rel_path = os.path.relpath(full_path, parent_dir)
+        self.name = rel_path.replace(os.sep, '/')
 
-# Formular from assignment: PR(A) = 0.15/n + 0.85 (PR(T1)/C(T1) + … +PR(Tn)/C(Tn))
+    def download_as_text(self):
+        with open(self.path, 'r', encoding='utf-8') as f:
+            return f.read()
+
+
+# Formula from assignment: PR(A) = 0.15/n + 0.85 (PR(T1)/C(T1) + … +PR(Tn)/C(Tn))
 # where PR(X) is the pagerank of a page X, T1..Tn are all the pages pointing to page X, and C(X) is the number of outgoing links that page X has.
 # From this, d is 0.85, and (1-d)/n is 0.15/n
 def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
     '''
-    Calcuated using the iterative formula: PR(X) = (1-d)/n + d * (PR(T1)/C(T1) + ... + PR(Tn)/C(Tn))
+    Calculated using the iterative formula: PR(X) = (1-d)/n + d * (PR(T1)/C(T1) + ... + PR(Tn)/C(Tn))
     where T1...Tn are the pages linking to page X,
     C(Ti) is the number of outbound links on page Ti
     Args:
@@ -92,27 +103,38 @@ def get_stats(data):
     Returns:
         dict: A dictionary containing the average, median, maximum, minimum, and quintiles of the input data.
     '''
-    labels = ["20th", "40th", "60th", "80th"]
-    quintiles = np.percentile(data, [20, 40, 60, 80]).astype(int).tolist()
+    if not data: return {}
+    quintiles = np.percentile(data, [20, 40, 60, 80])
     
-    statistics = {
+    return {
         "Avg": np.mean(data),
         "Median": np.median(data),
         "Max": np.max(data),
         "Min": np.min(data),
-        "Quintiles": dict(zip(labels, quintiles))
+        "Quintiles": [f"{x:g}" for x in quintiles]
     }
-    
-    return statistics
 
 
+def process_blob_content(args):
+    """Worker function for ThreadPool."""
+    name, content = args
+    try:
+        soup = BeautifulSoup(content, 'lxml')
+        outlinks = [a['href'] for a in soup.find_all('a', href=True)]
+        return name, outlinks
+    except Exception as e:
+        return name, []
 
-def analyze_bucket(bucket_name):
-    '''Analyze the specified bucket and compute the statistics for in-degrees and out-degrees.
+
+def analyze_bucket(source, is_local=False):
+    '''Analyze the specified bucket or local folder and compute the statistics for in-degrees and out-degrees.
     Args:
-        bucket_name (str): The name of the bucket to be analyzed.
-    This function retrieves the blobs (objects) from the specified bucket, extracts the outlinks from HTML files, and computes the in-degrees and out-degrees for each blob. It then calculates and prints the statistics for both in-degrees and out-degrees.
+        source (str): The name of the bucket or path to local folder.
+        is_local (bool): Whether to read from local file system.
+    This function retrieves the blobs (objects) from the specified bucket or folder, extracts the outlinks from HTML files, and computes the in-degrees and out-degrees for each blob. It then calculates and prints the statistics for both in-degrees and out-degrees.
     '''
+    start_time = time.time()
+    
     # Dictionary to store the in-count of each target URL
     in_count = defaultdict(int)
     
@@ -122,16 +144,42 @@ def analyze_bucket(bucket_name):
     # List of nodes (blobs) in the bucket
     nodes = []
     
-    # Get the bucket object
-    bucket = client.get_bucket(bucket_name)
+    blobs = []
     
-    # If testing is enabled, analyze a smaller bucket for faster results
-    if testing_enabled:
-        # Get only the first 10 blobs for testing
-        blobs = bucket.list_blobs(max_results=10)
+    if is_local:
+        if not os.path.exists(source):
+            print(f"Error: Path '{source}' does not exist.")
+            return
+
+        print(f"Reading from local folder: {source}")
+        all_files = []
+        for root, _, files in os.walk(source):
+             for file in files:
+                  if file.endswith('.html'):
+                       all_files.append(os.path.join(root, file))
+        
+        all_files.sort()
+
+        if testing_enabled:
+            all_files = all_files[:10]
+            
+        for fpath in all_files:
+            blobs.append(LocalBlob(fpath, source))
+            
     else:
-        # List all blobs (objects) in the bucket
-        blobs = bucket.list_blobs()
+        # Create a client to interact with Google Cloud Storage
+        client = storage.Client()
+        
+        # Get the bucket object
+        bucket = client.get_bucket(source)
+    
+        # If testing is enabled, analyze a smaller bucket for faster results
+        if testing_enabled:
+            # Get only the first 10 blobs for testing
+            blobs = bucket.list_blobs(max_results=10)
+        else:
+            # List all blobs (objects) in the bucket
+            blobs = bucket.list_blobs()
 
     # Analyze the blobs and print their names and sizes
     for blob in blobs:
@@ -153,6 +201,12 @@ def analyze_bucket(bucket_name):
         # Add the outlinks to the links list
         links = []
         for outlink in outlinks:
+            # Fix for relative paths and keys mismatch
+            if '/' in blob.name and not outlink.startswith('http'):
+                 directory = blob.name.rsplit('/', 1)[0]
+                 if not outlink.startswith('/'):
+                     outlink = f"{directory}/{outlink}"
+
             links.append(outlink)
             
             # Increment the in-count for the target URL
@@ -189,6 +243,14 @@ def analyze_bucket(bucket_name):
     print("--- Top 5 Pages by PageRank ---")
     for page, score in top_5_pageranks:
         print(f"{page}: {score:.6f}")
+        
+    print(f"\nTotal Execution Time: {time.time() - start_time:.2f} seconds")
 
 if __name__ == "__main__":
-    analyze_bucket(BUCKET_NAME)
+    parser = argparse.ArgumentParser(description="Analyze PageRank on HTML files.")
+    parser.add_argument('--local', action='store_true', help="Run in local mode reading from disk.")
+    parser.add_argument('source', nargs='?', default=BUCKET_NAME, help="Bucket name or local folder path.")
+    
+    args = parser.parse_args()
+    
+    analyze_bucket(args.source, is_local=args.local)
