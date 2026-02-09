@@ -124,6 +124,16 @@ def process_blob_content(args):
         return name, outlinks
     except Exception as e:
         return name, []
+    
+def download_helper(blob):
+    """Worker function for ThreadPool.
+    Args:
+        blob: A blob object from GCS.
+    Returns:
+        tuple: A tuple containing the blob name and its content as text, or None if the blob is not an HTML file.
+    """
+    if not blob.name.endswith('.html'): return None
+    return (blob.name, blob.download_as_text())
 
 
 def analyze_bucket(source, is_local=False):
@@ -135,104 +145,52 @@ def analyze_bucket(source, is_local=False):
     '''
     start_time = time.time()
     
-    # Dictionary to store the in-count of each target URL
-    in_count = defaultdict(int)
-    
-    # Dictionary to store the edges (outlinks) for each blob
-    edges = defaultdict(list)
-    
-    # List of nodes (blobs) in the bucket
-    nodes = []
-    
-    blobs = []
-    
+    blobs_to_process = []
+
     if is_local:
-        if not os.path.exists(source):
-            print(f"Error: Path '{source}' does not exist.")
-            return
-
-        print(f"Reading from local folder: {source}")
-        all_files = []
+        print(f"Scanning local folder: {source}")
         for root, _, files in os.walk(source):
-             for file in files:
-                  if file.endswith('.html'):
-                       all_files.append(os.path.join(root, file))
-        
-        all_files.sort()
-
-        if testing_enabled:
-            all_files = all_files[:10]
-            
-        for fpath in all_files:
-            blobs.append(LocalBlob(fpath, source))
-            
+            for file in files:
+                if file.endswith('.html'):
+                    path = os.path.join(root, file)
+                    blob = LocalBlob(path, source)
+                    blobs_to_process.append((blob.name, blob.download_as_text()))
     else:
-        # Create a client to interact with Google Cloud Storage
+        print(f"Connecting to GCS Bucket: {source}")
         client = storage.Client()
+        bucket = client.bucket(source)
         
-        # Get the bucket object
-        bucket = client.get_bucket(source)
-    
-        # If testing is enabled, analyze a smaller bucket for faster results
-        if testing_enabled:
-            # Get only the first 10 blobs for testing
-            blobs = bucket.list_blobs(max_results=10)
-        else:
-            # List all blobs (objects) in the bucket
-            blobs = bucket.list_blobs()
+        all_blobs = list(bucket.list_blobs(max_results=10 if testing_enabled else None))
+        
+        print(f"Downloading {len(all_blobs)} files (Threaded)...")
 
-    # Analyze the blobs and print their names and sizes
-    for blob in blobs:
-        # print(f"Blob Name: {blob.name}, Size: {blob.size} bytes")
-        
-        # Only analyze HTML files
-        if not blob.name.endswith('.html'):
-            continue
-        
-        content = blob.download_as_text()
-        
-        # parsing with BeautifulSoup with lxml parser
-        soup = BeautifulSoup(content, 'lxml')
-        
-        # Extract the outlinks from the HTML content
-        references = soup.find_all('a', href=True)
-        outlinks = [a['href'] for a in references]
-        
-        # Add the outlinks to the links list
-        links = []
-        for outlink in outlinks:
-            # Fix for relative paths and keys mismatch
-            if '/' in blob.name and not outlink.startswith('http'):
-                 directory = blob.name.rsplit('/', 1)[0]
-                 if not outlink.startswith('/'):
-                     outlink = f"{directory}/{outlink}"
+        with ThreadPoolExecutor(max_workers=50) as downloader:
+            results = list(downloader.map(download_helper, all_blobs))
+            blobs_to_process = [r for r in results if r]
 
-            links.append(outlink)
-            
-            # Increment the in-count for the target URL
-            in_count[outlink] +=1
-        
-        # Store the edges (outlinks) for the current blob
-        edges[blob.name] = links
-        
-        # Add the blob name to the list of nodes
-        nodes.append(blob.name)
+    # 2. Parse HTML with multiple threads
+    print("Parsing HTML content...")
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as parser:
+        parsed_results = list(parser.map(process_blob_content, blobs_to_process))
+
+    # 3. Build Graph
+    nodes = []
+    edges = {}
+    in_counts = defaultdict(int)
     
-    # Create lists of out-degrees and in-degrees for each node
-    # To be processed for statistics
-    out_degrees = [len(edges[node]) for node in nodes]
-    in_degrees = [in_count[node] for node in nodes]
-    
-    # Print the statistics for out-degrees and in-degrees
-    print("\nOut-Degree Statistics:")
-    out_stats = get_stats(out_degrees)
-    for stat, value in out_stats.items():
-        print(f"{stat}: {value}")
-        
-    print("\nIn-Degree Statistics:")
-    in_stats = get_stats(in_degrees)
-    for stat, value in in_stats.items():
-        print(f"{stat}: {value}")
+    for name, links in parsed_results:
+        nodes.append(name)
+        edges[name] = links
+        for link in links:
+            in_counts[link] += 1
+
+    # 4. Compute Stats
+    out_degrees = [len(edges[n]) for n in nodes]
+    in_degrees = [in_counts[n] for n in nodes]
+
+    print("\n--- Statistics ---")
+    print("Outgoing Links:", get_stats(out_degrees))
+    print("Incoming Links:", get_stats(in_degrees))
         
     # Compute PageRank values
     page_ranks = compute_page_rank(nodes, edges)
