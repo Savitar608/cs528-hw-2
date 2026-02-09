@@ -10,6 +10,9 @@ client = storage.Client()
 testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
 
+# Specify the bucket name
+BUCKET_NAME = 'cs528-adithyav-hw2'
+
 
 # Formular from assignment: PR(A) = 0.15/n + 0.85 (PR(T1)/C(T1) + … +PR(Tn)/C(Tn))
 # where PR(X) is the pagerank of a page X, T1..Tn are all the pages pointing to page X, and C(X) is the number of outgoing links that page X has.
@@ -187,4 +190,4 @@ def analyze_bucket(bucket_name):
         print(f"{page}: {score:.6f}")
 
 if __name__ == "__main__":
-    analyze_bucket('cs528-adithyav-hw2')
+    analyze_bucket(BUCKET_NAME)
