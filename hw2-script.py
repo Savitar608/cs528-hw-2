@@ -145,6 +145,7 @@ def analyze_bucket(source, is_local=False):
     '''
     start_time = time.time()
     
+    # 1. Get the data
     blobs_to_process = []
 
     if is_local:
@@ -192,10 +193,10 @@ def analyze_bucket(source, is_local=False):
     print("Outgoing Links:", get_stats(out_degrees))
     print("Incoming Links:", get_stats(in_degrees))
         
-    # Compute PageRank values
+    # 5. Compute PageRank values
     page_ranks = compute_page_rank(nodes, edges)
     
-    # Calculate the top 5 PageRank values
+    # 6. Calculate the top 5 PageRank values
     top_5_pageranks = sorted(page_ranks.items(), key=lambda x: x[1], reverse=True)[:5]
     
     print("--- Top 5 Pages by PageRank ---")
