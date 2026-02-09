@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 import argparse
 import os
 
-testing_enabled = False  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
+testing_enabled = True  # Set to True to analyze a smaller bucket for testing purposes, False to analyze the full bucket
 
 
 # Specify the bucket name
