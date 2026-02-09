@@ -200,14 +200,16 @@ def analyze_bucket(source, is_local=False):
                 print(f"  {k}: {', '.join(v)}")
             else:
                 print(f"  {k}: {v:.2f}" if isinstance(v, float) else f"  {k}: {v}")
-        
+                
+    print("\n--- Page rank computation ---")
+    
     # 5. Compute PageRank values
     page_ranks = compute_page_rank(nodes, edges)
     
     # 6. Calculate the top 5 PageRank values
     top_5_pageranks = sorted(page_ranks.items(), key=lambda x: x[1], reverse=True)[:5]
     
-    print("--- Top 5 Pages by PageRank ---")
+    print("\n--- Top 5 Pages by PageRank ---")
     for page, score in top_5_pageranks:
         print(f"{page}: {score:.6f}")
         
