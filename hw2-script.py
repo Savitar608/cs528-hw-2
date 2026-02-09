@@ -3,6 +3,7 @@ from collections import defaultdict
 from google.cloud import storage
 from bs4 import BeautifulSoup
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 # Create a client to interact with Google Cloud Storage
 client = storage.Client()
@@ -33,8 +34,8 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
     n = len(nodes)
     
     # Initialize PageRank values
-    page_ranks = { node: 1.0/n for node in nodes }
-    
+    page_ranks = { node: 1.0 / n for node in nodes }
+        
     converged = False
     iteration = 0
     
@@ -73,8 +74,8 @@ def compute_page_rank(nodes, edges, d=0.85, tol=0.005) -> dict:
         previous_total_rank = sum(page_ranks.values())
         
         
-        # If the change in total rank is more than 0.5%, we stop iterating
-        if abs(total_rank - previous_total_rank) / previous_total_rank > tol:
+        # If the change in total rank is less than 0.5%, we stop iterating
+        if abs(total_rank - previous_total_rank) / previous_total_rank < tol:
             print(f"Iteration {iteration}: Total PageRank sum changed from {previous_total_rank} to {total_rank}")
             converged = True
         
