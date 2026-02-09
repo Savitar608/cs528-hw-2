@@ -246,7 +246,31 @@ def analyze_bucket(source, is_local=False):
         
     print(f"\nTotal Execution Time: {time.time() - start_time:.2f} seconds")
 
+
+def test_independent_correctness():
+    """
+    Verifies PageRank logic on a known 3-node graph.
+    A -> B
+    B -> C
+    C -> A
+    Should converge to equal ranks (0.333) due to symmetry.
+    """
+    print("\n--- Running Independent Correctness Test ---")
+    nodes = ['A', 'B', 'C']
+    edges = {'A': ['B'], 'B': ['C'], 'C': ['A']}
+    
+    # Run logic
+    pr = compute_page_rank(nodes, edges, tol=0.001)
+    
+    # Check results
+    assert abs(pr['A'] - pr['B']) < 0.01, "Symmetric graph should have equal ranks"
+    assert abs(sum(pr.values()) - 1.0) < 0.01, "Closed loop sum should be ~1.0"
+    print("✅ Test Passed: Logic is correct on control graph.\n")
+
+
 if __name__ == "__main__":
+    test_independent_correctness()
+    
     parser = argparse.ArgumentParser(description="Analyze PageRank on HTML files.")
     parser.add_argument('--local', action='store_true', help="Run in local mode reading from disk.")
     parser.add_argument('source', nargs='?', default=BUCKET_NAME, help="Bucket name or local folder path.")
