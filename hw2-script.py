@@ -15,6 +15,7 @@ testing_enabled = True  # Set to True to analyze a smaller bucket for testing pu
 BUCKET_NAME = 'cs528-adithyav-hw2'
 
 class LocalBlob:
+    """A simple class to mimic GCS Blob behavior for local files."""
     def __init__(self, full_path, base_folder):
         self.path = full_path
         self.name = os.path.relpath(full_path, base_folder).replace(os.sep, '/')
