@@ -40,16 +40,18 @@ def get_file_from_bucket(request):
         
         return "Not Implemented", 501
 
-    # 2. Parse the bucket name from the path
-    bucket = request.path.split('/')[0] if len(request.path.split('/')) > 1 else None
+    print(f"INFO: Received {request.method} request for path: {request.path}")
     
-    # 3. Parse the filename from the path
-    # If bucket is specified, the filename is the rest of the path after the bucket name
-    # If bucket is not specified, it is a local request and the filename is the entire path
-    # and has to be fetched from local storage
-    filename = request.path[len(bucket)+1:] if bucket else request.path[1:]
+    # 2. Parse the bucket name and file name from the path
+    # The expected path format is /bucket_name/filename or /filename for local storage
+    path_parts = request.path.lstrip('/').split('/', 1)
+    if len(path_parts) == 2:
+        bucket, filename = path_parts
+    else:
+        bucket = None
+        filename = path_parts[0] if path_parts else None
     
-    # Handle the case where bucket is not specified (local storage)
+    # 3. Handle the case where bucket is not specified (local storage)
     if not bucket:
         # open the file from local storage
         try:
@@ -82,7 +84,7 @@ def get_file_from_bucket(request):
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(filename)
 
-    # 3. Try to fetch the file
+    # 4. Try to fetch the file
     try:
         if not blob.exists():
             error_msg = f"File {filename} not found in bucket {BUCKET_NAME}."
@@ -104,18 +106,19 @@ def get_file_from_bucket(request):
             
             return "Specified file not found in bucket", 404
 
-        # 4. Success Case: Read the file
+        # 5. Success Case: Read the file
         contents = blob.download_as_text()
         return contents, 200
 
+    # 6. Handle specific exceptions for not found and other errors
     except google.api_core.exceptions.NotFound:
         logger.log_struct(
             {"message": f"File {filename} not found in bucket {BUCKET_NAME}.", "file": filename, "status": 404},
             severity="WARNING"
         )
         return "Specified file not found in bucket", 404
+    # 7. Catch-all for other exceptions (permissions, connection issues, etc.)
     except Exception as e:
-        # Catch-all for other errors (permissions, connection issues)
         print(f"CRITICAL: {e}")
         logger.log_struct(
             {"message": str(e), "file": filename, "status": 500},
