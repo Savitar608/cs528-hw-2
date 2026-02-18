@@ -40,8 +40,40 @@ def get_file_from_bucket(request):
         
         return "Not Implemented", 501
 
-    # 2. Parse the filename from the path
-    filename = request.path.lstrip('/')
+    # 2. Parse the bucket name from the path
+    bucket = request.path.split('/')[0] if len(request.path.split('/')) > 1 else None
+    
+    # 3. Parse the filename from the path
+    # If bucket is specified, the filename is the rest of the path after the bucket name
+    # If bucket is not specified, it is a local request and the filename is the entire path
+    # and has to be fetched from local storage
+    filename = request.path[len(bucket)+1:] if bucket else request.path[1:]
+    
+    if not bucket:
+        # open the file from local storage
+        try:
+            with open(filename, 'r') as f:
+                contents = f.read()
+                return contents, 200
+        except FileNotFoundError:
+            error_msg = f"File {filename} not found in local storage."
+            
+            print(f"ERROR: {error_msg}")
+            
+            # Structured Logging
+            logger.log_struct(
+                {"message": error_msg, "file": filename, "status": 404},
+                severity="WARNING"
+            )
+            
+            return "Specified file not found in local storage", 404
+        except Exception as e:
+            print(f"CRITICAL: {e}")
+            logger.log_struct(
+                {"message": str(e), "file": filename, "status": 500},
+                severity="CRITICAL"
+            )
+            return "Internal Server Error", 500
     
     if not filename:
         return "Please specify a file path", 400
