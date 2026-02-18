@@ -5,6 +5,7 @@ import functions_framework
 from google.cloud import storage
 from google.cloud import logging as cloud_logging
 from google.cloud import pubsub_v1
+import google.api_core.exceptions
 
 # json library for message formatting in Pub/Sub
 import json
@@ -49,31 +50,37 @@ def get_file_from_bucket(request):
     blob = bucket.blob(filename)
 
     # 3. Try to fetch the file
-    if not blob.exists():
-        error_msg = f"File {filename} not found in bucket {BUCKET_NAME}."
-        
-        # Simple print statement
-        print(f"ERROR: {error_msg}")
-        
-        # Structured Logging
-        logger.log_struct(
-            {"message": error_msg, "file": filename, "status": 404},
-            severity="WARNING"
-        )
-
-        # Check your assignment details for "below".
-        message_json = json.dumps({"event": "file_not_found", "file": filename})
-        message_bytes = message_json.encode('utf-8')
-        future = publisher.publish(TOPIC_PATH, message_bytes)
-        future.result() # Wait for publish confirmation
-        
-        return "Specified file not found in bucket", 404
-
-    # 4. Success Case: Read the file
     try:
+        if not blob.exists():
+            error_msg = f"File {filename} not found in bucket {BUCKET_NAME}."
+            
+            # Simple print statement
+            print(f"ERROR: {error_msg}")
+            
+            # Structured Logging
+            logger.log_struct(
+                {"message": error_msg, "file": filename, "status": 404},
+                severity="WARNING"
+            )
+
+            # Check your assignment details for "below".
+            message_json = json.dumps({"event": "file_not_found", "file": filename})
+            message_bytes = message_json.encode('utf-8')
+            future = publisher.publish(TOPIC_PATH, message_bytes)
+            future.result() # Wait for publish confirmation
+            
+            return "Specified file not found in bucket", 404
+
+        # 4. Success Case: Read the file
         contents = blob.download_as_text()
         return contents, 200
 
+    except google.api_core.exceptions.NotFound:
+        logger.log_struct(
+            {"message": f"File {filename} not found in bucket {BUCKET_NAME}.", "file": filename, "status": 404},
+            severity="WARNING"
+        )
+        return "Specified file not found in bucket", 404
     except Exception as e:
         # Catch-all for other errors (permissions, connection issues)
         print(f"CRITICAL: {e}")
