@@ -49,6 +49,7 @@ def get_file_from_bucket(request):
     # and has to be fetched from local storage
     filename = request.path[len(bucket)+1:] if bucket else request.path[1:]
     
+    # Handle the case where bucket is not specified (local storage)
     if not bucket:
         # open the file from local storage
         try:
