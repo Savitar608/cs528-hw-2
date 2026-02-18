@@ -5,6 +5,8 @@ import functions_framework
 from google.cloud import storage
 from google.cloud import logging as cloud_logging
 from google.cloud import pubsub_v1
+
+# Exception handling for Google Cloud Storage operations
 import google.api_core.exceptions
 
 # json library for message formatting in Pub/Sub
