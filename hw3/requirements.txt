@@ -1,0 +1,4 @@
+functions_framework
+google-cloud-pubsub
+google-cloud-storage
+google-cloud-logging
