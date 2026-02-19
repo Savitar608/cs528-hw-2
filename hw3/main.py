@@ -19,7 +19,6 @@ logger = logging_client.logger("hw3-microservice-logs") # Custom log name
 publisher = pubsub_v1.PublisherClient()
 
 # Configuration: Bucket name and Pub/Sub topic path
-BUCKET_NAME = "cs528-adithyav-hw2"
 TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
 
 @functions_framework.http
@@ -83,13 +82,13 @@ def get_file_from_bucket(request):
     if not filename:
         return "Please specify a file path", 400
 
-    bucket = storage_client.bucket(BUCKET_NAME)
+    bucket = storage_client.bucket(bucket)
     blob = bucket.blob(filename)
 
     # 4. Try to fetch the file
     try:
         if not blob.exists():
-            error_msg = f"File {filename} not found in bucket {BUCKET_NAME}."
+            error_msg = f"File {filename} not found in bucket {bucket.name}."
             
             # Simple print statement
             print(f"ERROR: {error_msg}")
@@ -101,10 +100,11 @@ def get_file_from_bucket(request):
             )
 
             # Check your assignment details for "below".
-            message_json = json.dumps({"event": "file_not_found", "file": filename})
+            message_json = json.dumps({"event": "file_not_found", "file": filename, "bucket": bucket.name})
             message_bytes = message_json.encode('utf-8')
             future = publisher.publish(TOPIC_PATH, message_bytes)
             future.result() # Wait for publish confirmation
+            print(f"INFO: Published message to Pub/Sub topic {TOPIC_PATH} about missing file {filename}.")
             
             return "Specified file not found in bucket", 404
 
@@ -115,7 +115,7 @@ def get_file_from_bucket(request):
     # 6. Handle specific exceptions for not found and other errors
     except google.api_core.exceptions.NotFound:
         logger.log_struct(
-            {"message": f"File {filename} not found in bucket {BUCKET_NAME}.", "file": filename, "status": 404},
+            {"message": f"File {filename} not found in bucket {bucket.name}.", "file": filename, "status": 404},
             severity="WARNING"
         )
         return "Specified file not found in bucket", 404
