@@ -1,5 +1,4 @@
-# Ignore everything in the directory
-*
-# Except main.py and requirements.txt
-!main.py
-!requirements.txt
+http-client
+*.md
+venv/
+__pycache__/
