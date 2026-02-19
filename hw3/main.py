@@ -20,7 +20,7 @@ publisher = pubsub_v1.PublisherClient()
 
 # Configuration: Bucket name and Pub/Sub topic path
 BUCKET_NAME = "cs528-adithyav-hw2"
-TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-topic-forbidden-files"
+TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
 
 @functions_framework.http
 def get_file_from_bucket(request):
