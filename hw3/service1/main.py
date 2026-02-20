@@ -1,4 +1,6 @@
 # Google cloud functions framework for defining the HTTP handler
+from flask import Request
+
 import functions_framework
 
 # Google cloud libraries for Storage, Logging, and Pub/Sub
@@ -22,7 +24,7 @@ publisher = pubsub_v1.PublisherClient()
 TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
 
 @functions_framework.http
-def get_file_from_bucket(request):
+def get_file_from_bucket(request: Request):
     """
     HTTP Cloud Function to retrieve files from GCS.
     """
