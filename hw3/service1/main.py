@@ -45,44 +45,13 @@ def get_file_from_bucket(request: Request):
 
     print(f"INFO: Received {request.method} request for path: {request.path}")
     
-    # 2. Parse the bucket name and file name from the path
-    # The expected path format is /bucket_name/filename or /filename for local storage
-    path_parts = request.path.lstrip('/').split('/', 1)
-    if len(path_parts) == 2:
-        bucket, filename = path_parts
-    else:
-        bucket = None
-        filename = path_parts[0] if path_parts else None
-    
-    # 3. Handle the case where bucket is not specified (local storage)
-    if not bucket:
-        # open the file from local storage
-        try:
-            with open(filename, 'r') as f:
-                contents = f.read()
-                return contents, 200
-        except FileNotFoundError:
-            error_msg = f"File {filename} not found in local storage."
-            
-            print(f"ERROR: {error_msg}")
-            
-            # Structured Logging
-            logger.log_struct(
-                {"message": error_msg, "file": filename, "status": 404},
-                severity="WARNING"
-            )
-            
-            return "Specified file not found in local storage", 404
-        except Exception as e:
-            print(f"CRITICAL: {e}")
-            logger.log_struct(
-                {"message": str(e), "file": filename, "status": 500},
-                severity="CRITICAL"
-            )
-            return "Internal Server Error", 500
+    # 2. Parse the bucket name and file name from the path (e.g., /bucket/filename)
+    path_parts = request.path.strip('/').split('/', 1)
+    bucket = path_parts[0] if len(path_parts) > 0 else None
+    filename = path_parts[1] if len(path_parts) > 1 else None
     
     if not filename:
-        return "Please specify a file path", 400
+        return "Please specify path in the format /bucket/filename", 400
 
     bucket = storage_client.bucket(bucket)
     blob = bucket.blob(filename)
