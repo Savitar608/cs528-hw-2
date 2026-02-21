@@ -20,6 +20,9 @@ logging_client = cloud_logging.Client()
 logger = logging_client.logger("hw3-microservice-logs") # Custom log name
 publisher = pubsub_v1.PublisherClient()
 
+# Bucket name
+BUCKET_NAME = "cs528-adithyav-hw2"
+
 # Configuration: Bucket name and Pub/Sub topic path
 TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
 
@@ -45,18 +48,16 @@ def get_file_from_bucket(request: Request):
 
     print(f"INFO: Received {request.method} request for path: {request.path}")
     
-    # 2. Parse the bucket name and file name from the path (e.g., /bucket/filename)
-    path_parts = request.path.strip('/').split('/', 1)
-    bucket = path_parts[0] if len(path_parts) > 0 else None
-    filename = path_parts[1] if len(path_parts) > 1 else None
+    # 2. Parse the file name from the URL path
+    filename = request.path.lstrip('/').split('/')[-1] # Remove leading slash and get the last part
     
     if not filename:
-        return "Please specify path in the format /bucket/filename", 400
+        return "Please specify the file name in the URL path", 400
 
-    bucket = storage_client.bucket(bucket)
+    bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(filename)
 
-    # 4. Try to fetch the file
+    # 3. Try to fetch the file
     try:
         if not blob.exists():
             error_msg = f"File {filename} not found in bucket {bucket.name}."
