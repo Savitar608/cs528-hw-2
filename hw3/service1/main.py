@@ -13,15 +13,14 @@ import google.api_core.exceptions
 # json library for message formatting in Pub/Sub
 import json
 
-# Initialize clients for Storage, Logging, and Pub/Sub
-storage_client = storage.Client()
-publisher = pubsub_v1.PublisherClient()
-
 # Bucket name
 BUCKET_NAME = "cs528-adithyav-hw2"
 
 # Configuration: Bucket name and Pub/Sub topic path
 TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
+
+# List of forbidden countries
+FORBIDDEN_COUNTRIES = ["North Korea", "Iran", "Cuba", "Syria", "Sudan"]
 
 @functions_framework.http
 def get_file_from_bucket(request: Request):
@@ -29,6 +28,37 @@ def get_file_from_bucket(request: Request):
     HTTP Cloud Function to retrieve files from GCS.
     """
     
+    # Initialize clients for Storage, Logging, and Pub/Sub
+    storage_client = storage.Client()
+    publisher = pubsub_v1.PublisherClient()
+    
+    # 0. Check for Forbidden Countries
+    country = request.headers.get('X-country')
+    if country in FORBIDDEN_COUNTRIES:
+        error_msg = f"Forbidden Country: {country}"
+        print(f"ERROR: {error_msg}")
+        
+        # Structured Logging
+        print(json.dumps({
+            "severity": "ERROR",
+            "message": error_msg,
+            "method": request.method,
+            "country": country,
+            "status": 400
+        }))
+        
+        # Publish to Pub/Sub
+        message_json = json.dumps({"event": "forbidden_country", "country": country, "bucket": BUCKET_NAME})
+        message_bytes = message_json.encode('utf-8')
+        try: 
+            future = publisher.publish(TOPIC_PATH, message_bytes)
+            future.result()
+            print(f"INFO: Published message to Pub/Sub topic {TOPIC_PATH} about forbidden country {country}.")
+        except Exception as e:
+            print(f"ERROR: Failed to publish message to Pub/Sub: {e}")
+            
+        return "Forbidden", 400
+
     # 1. Enforce HTTP Method (Only GET allowed)
     if request.method != 'GET':
         error_msg = f"Method {request.method} not allowed."
@@ -73,13 +103,6 @@ def get_file_from_bucket(request: Request):
                 "file": filename,
                 "status": 404
             }))
-
-            # Check your assignment details for "below".
-            message_json = json.dumps({"event": "file_not_found", "file": filename, "bucket": bucket.name})
-            message_bytes = message_json.encode('utf-8')
-            future = publisher.publish(TOPIC_PATH, message_bytes)
-            future.result() # Wait for publish confirmation
-            print(f"INFO: Published message to Pub/Sub topic {TOPIC_PATH} about missing file {filename}.")
             
             return "Specified file not found in bucket", 404
 
