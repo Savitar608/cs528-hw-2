@@ -5,7 +5,6 @@ import functions_framework
 
 # Google cloud libraries for Storage, Logging, and Pub/Sub
 from google.cloud import storage
-from google.cloud import logging as cloud_logging
 from google.cloud import pubsub_v1
 
 # Exception handling for Google Cloud Storage operations
