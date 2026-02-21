@@ -5,6 +5,7 @@ import functions_framework
 
 # Google cloud libraries for Storage, Logging, and Pub/Sub
 from google.cloud import storage
+from google.cloud import logging as cloud_logging
 from google.cloud import pubsub_v1
 
 # Exception handling for Google Cloud Storage operations
@@ -30,6 +31,8 @@ def get_file_from_bucket(request: Request):
     
     # Initialize clients for Storage, Logging, and Pub/Sub
     storage_client = storage.Client()
+    logging_client = cloud_logging.Client()
+    logger = logging_client.logger("hw3-microservice-logs") # Custom log name
     publisher = pubsub_v1.PublisherClient()
     
     # 0. Check for Forbidden Countries
@@ -39,13 +42,10 @@ def get_file_from_bucket(request: Request):
         print(f"ERROR: {error_msg}")
         
         # Structured Logging
-        print(json.dumps({
-            "severity": "ERROR",
-            "message": error_msg,
-            "method": request.method,
-            "country": country,
-            "status": 400
-        }))
+        logger.log_struct(
+            {"message": error_msg, "method": request.method, "country": country, "status": 400},
+            severity="ERROR"
+        )
         
         # Publish to Pub/Sub
         message_json = json.dumps({"event": "forbidden_country", "country": country, "bucket": BUCKET_NAME})
@@ -64,12 +64,10 @@ def get_file_from_bucket(request: Request):
         error_msg = f"Method {request.method} not allowed."
         
         # Structured Logging
-        print(json.dumps({
-            "severity": "ERROR",
-            "message": error_msg,
-            "method": request.method,
-            "status": 501
-        }))
+        logger.log_struct(
+            {"message": error_msg, "method": request.method, "status": 501},
+            severity="ERROR"
+        )
         
         return "Not Implemented", 501
     
@@ -79,11 +77,10 @@ def get_file_from_bucket(request: Request):
     if not filename:
         return "Please specify the file name in the URL path", 400
 
-    print(json.dumps({
-        "severity": "INFO",
-        "message": f"Received {request.method} request for path: {request.path}",
-        "filename": filename
-    }))
+    logger.log_struct(
+        {"message": f"Received {request.method} request for path: {request.path}", "filename": filename},
+        severity="INFO"
+    )
     
     bucket = storage_client.bucket(BUCKET_NAME)
     blob = bucket.blob(filename)
@@ -97,12 +94,10 @@ def get_file_from_bucket(request: Request):
             print(f"ERROR: {error_msg}")
             
             # Structured Logging
-            print(json.dumps({
-                "severity": "WARNING",
-                "message": error_msg,
-                "file": filename,
-                "status": 404
-            }))
+            logger.log_struct(
+                {"message": error_msg, "file": filename, "status": 404},
+                severity="WARNING"
+            )
             
             return "Specified file not found in bucket", 404
 
@@ -112,20 +107,16 @@ def get_file_from_bucket(request: Request):
 
     # 6. Handle specific exceptions for not found and other errors
     except google.api_core.exceptions.NotFound:
-        print(json.dumps({
-            "severity": "WARNING",
-            "message": f"File {filename} not found in bucket {bucket.name}.",
-            "file": filename, 
-            "status": 404
-        }))
+        logger.log_struct(
+            {"message": f"File {filename} not found in bucket {bucket.name}.", "file": filename, "status": 404},
+            severity="WARNING"
+        )
         return "Specified file not found in bucket", 404
     # 7. Catch-all for other exceptions (permissions, connection issues, etc.)
     except Exception as e:
         print(f"CRITICAL: {e}")
-        print(json.dumps({
-            "severity": "CRITICAL",
-            "message": str(e), 
-            "file": filename, 
-            "status": 500
-        }))
+        logger.log_struct(
+            {"message": str(e), "file": filename, "status": 500},
+            severity="CRITICAL"
+        )
         return "Internal Server Error", 500
