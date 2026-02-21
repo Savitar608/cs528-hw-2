@@ -1,12 +1,24 @@
 import json
 from concurrent.futures import TimeoutError
 from google.cloud import pubsub_v1
+from google.cloud import storage
 
+import threading
+
+# Configuration: GCP project, Pub/Sub subscription, and GCS bucket details
 project_id = "main-tokenizer-486322-e1"
 subscription_id = "hw3-forbidden-files-subscription"
-LOCAL_FILE = "log.txt"
+
+# Configuration: Bucket name
+BUCKET_NAME = "cs528-adithyav-hw2"
+LOG_FILE = "forbidden-countries/log.txt"
 
 subscriber = pubsub_v1.SubscriberClient()
+storage_client = storage.Client()
+bucket = storage_client.bucket(BUCKET_NAME)
+
+# Lock for local thread safety when writing to GCS
+log_lock = threading.Lock() 
 
 subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
@@ -19,10 +31,23 @@ def callback(message):
             data = json.loads(message.data.decode("utf-8"))
             print(f"Data: {data}")
             
-            # Append to local file for testing purpose
-            # TODO: Change this to append to storage bucket
-            with open(LOCAL_FILE, 'a') as f:
-                f.write(json.dumps(data) + "\n")
+            # Append to storage bucket with concurrency handling
+            with log_lock:
+                try:
+                    blob = bucket.get_blob(LOG_FILE)
+                    existing_content = ""
+                    if blob:
+                        existing_content = blob.download_as_text()
+                    else:
+                        blob = bucket.blob(LOG_FILE)
+                    
+                    new_content = existing_content + json.dumps(data) + "\n"
+                    
+                    blob.upload_from_string(new_content)
+                    print(f"Appended log to gs://{BUCKET_NAME}/{LOG_FILE}")
+                
+                except Exception as gcs_error:
+                     print(f"Error writing to GCS: {gcs_error}")
                 
         message.ack()
     except Exception as e:
