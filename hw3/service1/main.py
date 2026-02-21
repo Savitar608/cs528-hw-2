@@ -20,7 +20,7 @@ BUCKET_NAME = "cs528-adithyav-hw2"
 TOPIC_PATH = "projects/main-tokenizer-486322-e1/topics/hw3-forbidden-files"
 
 # List of forbidden countries
-FORBIDDEN_COUNTRIES = ["North Korea", "Iran", "Cuba", "Syria", "Sudan"]
+FORBIDDEN_COUNTRIES = ["North Korea", "Iran", "Cuba", "Myanmar", "Iraq", "Libya", "Sudan", "Zimbabwe", "Syria"]
 
 @functions_framework.http
 def get_file_from_bucket(request: Request):
